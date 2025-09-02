@@ -175,32 +175,22 @@ st.dataframe(agg2.reset_index(drop=True).style.format({"Net Sales": "{:,.0f}", "
 
 
 # === 6. Detailed Table ===
+# === 6. Detailed Table ===
 st.subheader("Detailed Risk Table")
 
-dettaglio_cols = [
-    "Suffering Country",
-    "Generating Country",
-    "Suffering Customer",
-    "Generating Customer",
-    "Category",
-    "Comparable",
-    "Comparable Price",
-    "3Net Price [EUR/kg]",
-    "Min Price",
-    "Net Sales",
-    "Risk",
-    "% Risk"
-]
+# Mostra tutte le colonne calcolate per controllo
+all_cols = df.columns.tolist()
 
-for col in dettaglio_cols:
-    if col not in df.columns:
-        df[col] = None
-
-st.dataframe(df[dettaglio_cols].reset_index(drop=True).style.format({
+# Reset index per togliere numeri di riga
+st.dataframe(df[all_cols].reset_index(drop=True).style.format({
     "Comparable Price": "{:,.2f}",
     "3Net Price [EUR/kg]": "{:,.2f}",
     "Min Price": "{:,.2f}",
     "Net Sales": "{:,.0f}",
+    "Min Price Net Sales": "{:,.0f}",
     "Risk": "{:,.0f}",
-    "% Risk": "{:.2%}"
+    "% Risk": "{:.2%}",
+    "Operating Corridor": "{:,.2f}",
+    "Comparable Volumes": "{:,.0f}"
 }))
+
