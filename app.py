@@ -4,13 +4,13 @@ import pandas as pd
 st.set_page_config(page_title="Risk Analysis Tool", layout="wide")
 st.title("Risk Analysis Tool")
 
-# === Load files directly from repo ===
+# === 1. Load files directly from repo ===
 export = pd.read_excel("Export.xlsx")
 product_registry = pd.read_excel("Product Registry.xlsx")
 mappatura = pd.read_excel("Mappatura.xlsx", usecols=[0, 1], names=["Customer Name", "Buying Alliance"], header=0)
 corridors = pd.read_excel("Corridors.xlsx")
 
-# === Build Calculations ===
+# === 2. Build Calculations ===
 calc = export.copy()
 
 # Comparable
@@ -27,6 +27,9 @@ calc = calc.merge(
     left_on="Customer Hierarchy - Customer",
     right_on="Customer Name"
 ).drop(columns=["Customer Name"])
+
+# Exclude rows with NaN in Buying Alliance by default
+calc = calc[calc["Buying Alliance"].notna()].copy()
 
 # Category
 comp_to_cat = product_registry[[
@@ -98,11 +101,10 @@ def recalculate(df, flag):
     return df
 
 
-# === Sidebar filters ===
+# === 3. Sidebar filters ===
 st.sidebar.header("Filters")
 paesi = st.sidebar.multiselect("Countries", sorted(calc["Sellin Country Hierarchy - Country"].dropna().unique()))
 categorie = st.sidebar.multiselect("Categories", sorted(calc["Category"].dropna().unique()))
-# remove NaN by default
 alliances_list = sorted([x for x in calc["Buying Alliance"].dropna().unique()])
 alleanze = st.sidebar.multiselect("Buying Alliance", alliances_list)
 flag = st.sidebar.radio("Risk Type", ["suffered", "generated"])
@@ -117,7 +119,7 @@ if alleanze:
 
 df = recalculate(df, flag)
 
-# === Aggregated by Country ===
+# === 4. Aggregated by Country ===
 if flag == "suffered":
     group_col = "Suffering Country"
 else:
@@ -129,39 +131,34 @@ agg = df.groupby(group_col).agg({
 }).reset_index()
 agg["% Risk"] = agg["Risk"] / agg["Net Sales"]
 
-grand_total = pd.DataFrame({
-    group_col: ["Grand Total"],
-    "Net Sales": [agg["Net Sales"].sum()],
-    "Risk": [agg["Risk"].sum()],
-    "% Risk": [agg["Risk"].sum() / agg["Net Sales"].sum() if agg["Net Sales"].sum() else 0]
-})
-agg = pd.concat([agg, grand_total], ignore_index=True)
+# Totals in title
+total_risk = agg["Risk"].sum()
+total_net_sales = agg["Net Sales"].sum()
+total_pct = total_risk / total_net_sales if total_net_sales else 0
 
 st.subheader("Aggregated Risk by Country")
+st.markdown(f"**Total Risk: {total_risk:,.0f} | Total Net Sales: {total_net_sales:,.0f} | % Risk: {total_pct:.2%}**")
 st.dataframe(agg.style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
 
 
-# === Aggregated by Country + Category ===
+# === 5. Aggregated by Country + Category ===
 agg2 = df.groupby([group_col, "Category"]).agg({
     "Net Sales": "sum",
     "Risk": "sum"
 }).reset_index()
 agg2["% Risk"] = agg2["Risk"] / agg2["Net Sales"]
 
-grand_total2 = pd.DataFrame({
-    group_col: ["Grand Total"],
-    "Category": ["All Categories"],
-    "Net Sales": [agg2["Net Sales"].sum()],
-    "Risk": [agg2["Risk"].sum()],
-    "% Risk": [agg2["Risk"].sum() / agg2["Net Sales"].sum() if agg2["Net Sales"].sum() else 0]
-})
-agg2 = pd.concat([agg2, grand_total2], ignore_index=True)
+# Totals in title
+total_risk2 = agg2["Risk"].sum()
+total_net_sales2 = agg2["Net Sales"].sum()
+total_pct2 = total_risk2 / total_net_sales2 if total_net_sales2 else 0
 
 st.subheader("Aggregated Risk by Country and Category")
+st.markdown(f"**Total Risk: {total_risk2:,.0f} | Total Net Sales: {total_net_sales2:,.0f} | % Risk: {total_pct2:.2%}**")
 st.dataframe(agg2.style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
 
 
-# === Detailed Table ===
+# === 6. Detailed Table ===
 st.subheader("Detailed Risk Table")
 
 dettaglio_cols = [
@@ -191,4 +188,3 @@ st.dataframe(df[dettaglio_cols].style.format({
     "Risk": "{:,.0f}",
     "% Risk": "{:.2%}"
 }))
-
