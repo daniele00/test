@@ -10,6 +10,7 @@ export = pd.read_excel("Export.xlsx")
 product_registry = pd.read_excel("Product Registry.xlsx")
 mappatura = pd.read_excel("Mappatura.xlsx", usecols=[0, 1], names=["Customer Name", "Buying Alliance"], header=0)
 corridors = pd.read_excel("Corridors.xlsx")
+mapping_area = pd.read_excel("Mapping Area.xlsx")  # NEW FILE
 
 # === 2. Build Calculations ===
 calc = export.copy()
@@ -41,17 +42,15 @@ comp_to_cat = product_registry[[
 })
 calc = calc.merge(comp_to_cat, how="left", on="Comparable")
 
-# Corridors
-corridors_lookup = corridors[["Country", "Attribute", "Corridor Min", "Corridor Max"]].rename(columns={
-    "Corridor Min": "Min Corridor",
-    "Corridor Max": "Max Corridor"
-})
+# Mapping Area
 calc = calc.merge(
-    corridors_lookup,
+    mapping_area.rename(columns={"Country": "Sellin Country Hierarchy - Country"}),
     how="left",
-    left_on=["Sellin Country Hierarchy - Country", "Category"],
-    right_on=["Country", "Attribute"]
-).drop(columns=["Country", "Attribute"])
+    on="Sellin Country Hierarchy - Country"
+)
+
+# Prepare corridors lookup
+corridors_lookup = corridors[["Country", "Attribute", "Corridor Min", "Corridor Max"]]
 
 
 # === Helper function to recalculate after filters ===
@@ -86,6 +85,23 @@ def recalculate(df, flag):
     df = df.merge(min_price_country, how="left", on=["Comparable", "Buying Alliance"])
     df = df.merge(min_price_customer, how="left", on=["Comparable", "Buying Alliance"])
 
+    # Corridors - join twice
+    # Max Corridor by Suffering Country
+    df = df.merge(
+        corridors_lookup[["Country", "Attribute", "Corridor Max"]].rename(columns={"Corridor Max": "Max Corridor"}),
+        how="left",
+        left_on=["Sellin Country Hierarchy - Country", "Category"],
+        right_on=["Country", "Attribute"]
+    ).drop(columns=["Country", "Attribute"], errors="ignore")
+
+    # Min Corridor by Generating Country
+    df = df.merge(
+        corridors_lookup[["Country", "Attribute", "Corridor Min"]].rename(columns={"Corridor Min": "Min Corridor"}),
+        how="left",
+        left_on=["Generating Country", "Category"],
+        right_on=["Country", "Attribute"]
+    ).drop(columns=["Country", "Attribute"], errors="ignore")
+
     # Calculations
     df["Operating Corridor"] = df["Max Corridor"] / df["Min Corridor"]
     df["Net Sales"] = df["Comparable Price"] * df["Volumes [q]"]
@@ -104,6 +120,7 @@ def recalculate(df, flag):
 
 # === 3. Sidebar filters ===
 st.sidebar.header("Filters")
+areas = st.sidebar.multiselect("Areas", sorted(calc["Area"].dropna().unique()))
 paesi = st.sidebar.multiselect("Countries", sorted(calc["Sellin Country Hierarchy - Country"].dropna().unique()))
 categorie = st.sidebar.multiselect("Categories", sorted(calc["Category"].dropna().unique()))
 alliances_list = sorted([x for x in calc["Buying Alliance"].dropna().unique()])
@@ -111,6 +128,8 @@ alleanze = st.sidebar.multiselect("Buying Alliance", alliances_list)
 flag = st.sidebar.radio("Risk Type", ["suffered", "generated"])
 
 df = calc.copy()
+if areas:
+    df = df[df["Area"].isin(areas)]
 if paesi:
     df = df[df["Sellin Country Hierarchy - Country"].isin(paesi)]
 if categorie:
@@ -146,11 +165,11 @@ fig = px.bar(
     agg,
     x=group_col,
     y=["Net Sales", "Risk"],
-    barmode="overlay",  # overlay so Risk appears in front of Net Sales
+    barmode="overlay",
     title="Net Sales vs Risk by Country",
     color_discrete_map={
-        "Net Sales": "steelblue",   # blu
-        "Risk": "crimson"           # rosso acceso
+        "Net Sales": "steelblue",
+        "Risk": "crimson"
     }
 )
 fig.update_traces(opacity=0.8)
@@ -175,13 +194,10 @@ st.dataframe(agg2.reset_index(drop=True).style.format({"Net Sales": "{:,.0f}", "
 
 
 # === 6. Detailed Table ===
-# === 6. Detailed Table ===
 st.subheader("Detailed Risk Table")
 
-# Mostra tutte le colonne calcolate per controllo
+# Show all columns for sense check
 all_cols = df.columns.tolist()
-
-# Reset index per togliere numeri di riga
 st.dataframe(df[all_cols].reset_index(drop=True).style.format({
     "Comparable Price": "{:,.2f}",
     "3Net Price [EUR/kg]": "{:,.2f}",
@@ -193,4 +209,3 @@ st.dataframe(df[all_cols].reset_index(drop=True).style.format({
     "Operating Corridor": "{:,.2f}",
     "Comparable Volumes": "{:,.0f}"
 }))
-
