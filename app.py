@@ -114,25 +114,35 @@ if export_file and product_file and mappatura_file and corridors_file:
 
     # === 6. Tabella di dettaglio ===
     st.subheader("📋 Dettaglio Rischio")
-    st.dataframe(df[[
-        "Sellin Country Hierarchy - Country",
-        "Min Price Country",
-        "Customer Hierarchy - Customer",
-        "Category",
-        "Comparable",
-        "Comparable Price",
-        "3Net Price [EUR/kg]",
-        "Min Price",
-        "Net Sales",
-        "Risk",
-        "% Risk"
-    ]].style.format({
-        "Comparable Price": "{:,.2f}",
-        "3Net Price [EUR/kg]": "{:,.2f}",
-        "Min Price": "{:,.2f}",
-        "Net Sales": "{:,.0f}",
-        "Risk": "{:,.0f}",
-        "% Risk": "{:.2%}"
-    }))
+
+# Colonne che vogliamo sempre vedere
+dettaglio_cols = [
+    "Sellin Country Hierarchy - Country",
+    "Min Price Country",
+    "Customer Hierarchy - Customer",
+    "Category",
+    "Comparable",
+    "Comparable Price",
+    "3Net Price [EUR/kg]",
+    "Min Price",
+    "Net Sales",
+    "Risk",
+    "% Risk"
+]
+
+# Se qualche colonna manca, la creiamo vuota
+for col in dettaglio_cols:
+    if col not in df.columns:
+        df[col] = None
+
+st.dataframe(df[dettaglio_cols].style.format({
+    "Comparable Price": "{:,.2f}",
+    "3Net Price [EUR/kg]": "{:,.2f}",
+    "Min Price": "{:,.2f}",
+    "Net Sales": "{:,.0f}",
+    "Risk": "{:,.0f}",
+    "% Risk": "{:.2%}"
+}))
+
 else:
     st.info("⬅️ Carica tutti e 4 i file Excel per iniziare")
