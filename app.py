@@ -147,7 +147,11 @@ fig = px.bar(
     x=group_col,
     y=["Net Sales", "Risk"],
     barmode="overlay",  # overlay so Risk appears in front of Net Sales
-    title="Net Sales vs Risk by Country"
+    title="Net Sales vs Risk by Country",
+    color_discrete_map={
+        "Net Sales": "steelblue",   # blu
+        "Risk": "crimson"           # rosso acceso
+    }
 )
 fig.update_traces(opacity=0.8)
 st.plotly_chart(fig, use_container_width=True)
