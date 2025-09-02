@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 st.set_page_config(page_title="Risk Analysis Tool", layout="wide")
 st.title("Risk Analysis Tool")
@@ -138,7 +139,18 @@ total_pct = total_risk / total_net_sales if total_net_sales else 0
 
 st.subheader("Aggregated Risk by Country")
 st.markdown(f"**Total Risk: {total_risk:,.0f} | Total Net Sales: {total_net_sales:,.0f} | % Risk: {total_pct:.2%}**")
-st.dataframe(agg.style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
+st.dataframe(agg.reset_index(drop=True).style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
+
+# === Bar chart ===
+fig = px.bar(
+    agg,
+    x=group_col,
+    y=["Net Sales", "Risk"],
+    barmode="overlay",  # overlay so Risk appears in front of Net Sales
+    title="Net Sales vs Risk by Country"
+)
+fig.update_traces(opacity=0.8)
+st.plotly_chart(fig, use_container_width=True)
 
 
 # === 5. Aggregated by Country + Category ===
@@ -155,7 +167,7 @@ total_pct2 = total_risk2 / total_net_sales2 if total_net_sales2 else 0
 
 st.subheader("Aggregated Risk by Country and Category")
 st.markdown(f"**Total Risk: {total_risk2:,.0f} | Total Net Sales: {total_net_sales2:,.0f} | % Risk: {total_pct2:.2%}**")
-st.dataframe(agg2.style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
+st.dataframe(agg2.reset_index(drop=True).style.format({"Net Sales": "{:,.0f}", "Risk": "{:,.0f}", "% Risk": "{:.2%}"}))
 
 
 # === 6. Detailed Table ===
@@ -180,7 +192,7 @@ for col in dettaglio_cols:
     if col not in df.columns:
         df[col] = None
 
-st.dataframe(df[dettaglio_cols].style.format({
+st.dataframe(df[dettaglio_cols].reset_index(drop=True).style.format({
     "Comparable Price": "{:,.2f}",
     "3Net Price [EUR/kg]": "{:,.2f}",
     "Min Price": "{:,.2f}",
