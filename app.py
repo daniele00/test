@@ -2,8 +2,13 @@ import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Risk Analysis Tool", layout="wide")
-
 st.title("📊 Risk Analysis Tool")
+
+# === Caricamento file direttamente dal repo ===
+export = pd.read_excel("Export.xlsx")
+product_registry = pd.read_excel("Product Registry.xlsx")
+mappatura = pd.read_excel("Mappatura.xlsx", usecols=[0, 1], names=["Customer Name", "Buying Alliance"], header=0)
+corridors = pd.read_excel("Corridors.xlsx")
 
 # === 1. Upload dei file ===
 st.sidebar.header("Carica i file necessari")
