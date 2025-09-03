@@ -8,38 +8,49 @@ st.title("Risk Analysis Tool")
 # === 1. Load files directly from repo ===
 export = pd.read_excel("Export.xlsx")
 product_registry = pd.read_excel("Product Registry.xlsx")
-mapping_ba = pd.read_excel("Mapping BA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
-mapping_ia = pd.read_excel("Mapping IA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
+mapping_ba = pd.read_excel("Mapping_BA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
+mapping_ia = pd.read_excel("Mapping_IA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
 corridors = pd.read_excel("Corridors.xlsx")
 mapping_area = pd.read_excel("Mapping Area.xlsx")
 
-# === 2. Alliance toggle ===
-alliance_type = st.sidebar.radio("Alliance Mapping", ["Buying Alliance", "International Alliance"])
-if alliance_type == "Buying Alliance":
-    mapping = mapping_ba
-else:
-    mapping = mapping_ia
+# === 2. Alliance toggle (3 options) ===
+alliance_type = st.sidebar.radio("Alliance Mapping", ["Buying Alliance", "International Alliance", "Modern Trade"])
 
-# === 3. Build Calculations ===
 calc = export.copy()
 
+if alliance_type == "Buying Alliance":
+    mapping = mapping_ba
+    calc = calc.merge(
+        mapping,
+        how="left",
+        left_on="Customer Hierarchy - Customer",
+        right_on="Customer Name"
+    ).drop(columns=["Customer Name"])
+
+elif alliance_type == "International Alliance":
+    mapping = mapping_ia
+    calc = calc.merge(
+        mapping,
+        how="left",
+        left_on="Customer Hierarchy - Customer",
+        right_on="Customer Name"
+    ).drop(columns=["Customer Name"])
+
+else:  # Modern Trade
+    calc["Alliance"] = calc["Customer Hierarchy - Customer"].apply(
+        lambda x: "Modern Trade" if str(x).strip().lower() == "modern trade" else None
+    )
+
+# Exclude rows with NaN in Alliance by default
+calc = calc[calc["Alliance"].notna()].copy()
+
+# === 3. Build Calculations ===
 # Comparable
 calc = calc.merge(
     product_registry[["Product Hierarchy - Product", "Product Hierarchy - Comparable Product"]],
     how="left",
     on="Product Hierarchy - Product"
 ).rename(columns={"Product Hierarchy - Comparable Product": "Comparable"})
-
-# Alliance (BA or IA depending on toggle)
-calc = calc.merge(
-    mapping,
-    how="left",
-    left_on="Customer Hierarchy - Customer",
-    right_on="Customer Name"
-).drop(columns=["Customer Name"])
-
-# Exclude rows with NaN in Alliance by default
-calc = calc[calc["Alliance"].notna()].copy()
 
 # Category
 comp_to_cat = product_registry[[
