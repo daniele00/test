@@ -8,8 +8,8 @@ st.title("Risk Analysis Tool")
 # === 1. Load files directly from repo ===
 export = pd.read_excel("Export.xlsx")
 product_registry = pd.read_excel("Product Registry.xlsx")
-mapping_ba = pd.read_excel("Mapping_BA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
-mapping_ia = pd.read_excel("Mapping_IA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
+mapping_ba = pd.read_excel("Mapping BA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
+mapping_ia = pd.read_excel("Mapping IA.xlsx", usecols=[0, 1], names=["Customer Name", "Alliance"], header=0)
 corridors = pd.read_excel("Corridors.xlsx")
 mapping_area = pd.read_excel("Mapping Area.xlsx")
 
